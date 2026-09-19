@@ -338,7 +338,10 @@
             loadLocalFallback();
         }
     });
-
+auth.getRedirectResult().catch(err => {
+    console.error(err);
+});
+        
     function handleAuth() {
         if (currentUser) {
             auth.signOut();
