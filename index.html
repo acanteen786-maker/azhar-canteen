@@ -323,43 +323,54 @@
         rates: { breakfast: 70, lunch: 150, dinner: 150 }
     };
 
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            currentUser = user;
-            document.getElementById('userEmail').innerText = user.email;
-            document.getElementById('authBtn').innerText = 'Logout';
-            document.getElementById('authBtn').className = 'btn btn-danger';
-            listenToCloudData();
-        } else {
-            currentUser = null;
-            document.getElementById('userEmail').innerText = 'Not Logged In';
-            document.getElementById('authBtn').innerText = 'Login with Google';
-            document.getElementById('authBtn').className = 'btn btn-accent';
-            loadLocalFallback();
-        }
-    });
-auth.getRedirectResult().then((result) => {
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .then(() => {
+    return auth.getRedirectResult();
+  })
+  .then((result) => {
     if (result && result.user) {
-        currentUser = result.user;
-        document.getElementById('userEmail').innerText = result.user.email;
-        document.getElementById('authBtn').innerText = 'Logout';
-        document.getElementById('authBtn').className = 'btn btn-danger';
-        listenToCloudData();
+      console.log("Redirect success:", result.user.email);
     }
-}).catch((err) => {
-    console.error("Redirect Error:", err);
+  })
+  .catch((err) => {
+    console.error("Auth redirect error:", err);
     alert("Login Error: " + err.message);
+  });
+
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    currentUser = user;
+    const userEmailEl = document.getElementById('userEmail');
+    const authBtnEl = document.getElementById('authBtn');
+    if (userEmailEl) userEmailEl.innerText = user.email;
+    if (authBtnEl) {
+      authBtnEl.innerText = 'Logout';
+      authBtnEl.className = 'btn btn-danger';
+    }
+    listenToCloudData();
+  } else {
+    currentUser = null;
+    const userEmailEl = document.getElementById('userEmail');
+    const authBtnEl = document.getElementById('authBtn');
+    if (userEmailEl) userEmailEl.innerText = 'Not Logged In';
+    if (authBtnEl) {
+      authBtnEl.innerText = 'Login with Google';
+      authBtnEl.className = 'btn btn-accent';
+    }
+    loadLocalFallback();
+  }
 });
 
-        
-    function handleAuth() {
-        if (currentUser) {
-            auth.signOut();
-        } else {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithRedirect(provider).catch(err => alert("Login Error: " + err.message));
-        }
-    }
+function handleAuth() {
+  if (currentUser) {
+    auth.signOut();
+  } else {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    auth.signInWithRedirect(provider);
+  }
+}
+
 
     function listenToCloudData() {
         if (!currentUser) return;
