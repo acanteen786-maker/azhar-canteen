@@ -338,9 +338,19 @@
             loadLocalFallback();
         }
     });
-auth.getRedirectResult().catch(err => {
-    console.error(err);
+auth.getRedirectResult().then((result) => {
+    if (result && result.user) {
+        currentUser = result.user;
+        document.getElementById('userEmail').innerText = result.user.email;
+        document.getElementById('authBtn').innerText = 'Logout';
+        document.getElementById('authBtn').className = 'btn btn-danger';
+        listenToCloudData();
+    }
+}).catch((err) => {
+    console.error("Redirect Error:", err);
+    alert("Login Error: " + err.message);
 });
+
         
     function handleAuth() {
         if (currentUser) {
