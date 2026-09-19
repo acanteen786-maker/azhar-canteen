@@ -343,7 +343,7 @@
             auth.signOut();
         } else {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(err => alert("Login Error: " + err.message));
+            auth.signInWithRedirect(provider).catch(err => alert("Login Error: " + err.message));
         }
     }
 
