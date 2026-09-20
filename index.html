@@ -1,653 +1,455 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AZHAR CANTEEN SYSTEM</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AZHAR CANTEEN SYSTEM</title>
+
+  <!-- Firebase Libraries (Compat v9) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-hover: #1d4ed8;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --border: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    body { background-color: var(--bg); color: var(--text); padding: 15px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .auth-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-top: 4px solid var(--primary);
+    }
+    .stat-card h3 { font-size: 14px; color: #4b5563; margin-bottom: 5px; }
+    .stat-card p { font-size: 22px; font-weight: bold; }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background: var(--card-bg);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .panel { display: none; background: var(--card-bg); padding: 20px; border-radius: 8px; }
+    .panel.active { display: block; }
+
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; }
     
-    <!-- Firebase Libraries -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+    }
+    .btn-primary { background: var(--primary); }
+    .btn-accent { background: var(--accent); }
+    .btn-danger { background: var(--danger); }
 
-    <style>
-        :root {
-            --primary: #1e3a8a;
-            --primary-hover: #1e40af;
-            --accent: #10b981;
-            --danger: #ef4444;
-            --bg: #f3f4f6;
-            --card-bg: #ffffff;
-            --text: #1f2937;
-            --border: #e5e7eb;
-        }
-
-        * { box-sizing: border-box; font-family: Arial, sans-serif; margin: 0; padding: 0; }
-        body { background-color: var(--bg); color: var(--text); padding: 15px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-
-        header {
-            background: var(--primary);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .auth-box {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.15);
-            padding: 6px 12px;
-            border-radius: 6px;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-top: 4px solid var(--primary);
-        }
-
-        .stat-card h3 { font-size: 14px; color: #6b7280; margin-bottom: 5px; }
-        .stat-card p { font-size: 22px; font-weight: bold; }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 10px;
-            overflow-x: auto;
-        }
-
-        .tab-btn {
-            background: none;
-            border: none;
-            padding: 10px 18px;
-            font-size: 15px;
-            font-weight: 600;
-            color: #4b5563;
-            cursor: pointer;
-            border-radius: 6px;
-            white-space: nowrap;
-        }
-
-        .tab-btn.active { background: var(--primary); color: white; }
-
-        .card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        input, select, button {
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-        }
-
-        button.btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        button.btn:hover { background: var(--primary-hover); }
-        button.btn-accent { background: var(--accent); }
-        button.btn-danger { background: var(--danger); }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background: #f9fafb; font-weight: 600; }
-
-        .balance-low { color: var(--danger); font-weight: bold; }
-        .balance-ok { color: var(--accent); font-weight: bold; }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        .cloud-badge {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            background: #dcfce7;
-            color: #166534;
-            display: inline-block;
-            margin-top: 5px;
-        }
-    </style>
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+    th { background: #f9fafb; }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <header>
-        <div>
-            <h2>🍽️ AZHAR CANTEEN</h2>
-            <div id="cloudStatus" class="cloud-badge">☁️ Google Cloud Connected</div>
-        </div>
-        <div class="auth-box">
-            <span id="userEmail">Checking login...</span>
-            <button id="authBtn" class="btn btn-accent" onclick="handleAuth()">Login with Google</button>
-        </div>
-    </header>
-
-    <!-- Dashboard Cards -->
-    <div class="dashboard-grid">
-        <div class="stat-card">
-            <h3>👥 Total Members</h3>
-            <p id="dashTotalMembers">0</p>
-        </div>
-        <div class="stat-card">
-            <h3>🍽️ Aaj Ke Total Meals</h3>
-            <p id="dashTodayMeals">0</p>
-        </div>
-        <div class="stat-card">
-            <h3>💰 Aaj Ka Total Kharcha</h3>
-            <p id="dashTodayExpense">Rs 0</p>
-        </div>
-        <div class="stat-card">
-            <h3>💵 Total Baqaya Balance</h3>
-            <p id="dashTotalBalance">Rs 0</p>
-        </div>
+  <header>
+    <div>
+      <h2>🍽 AZHAR CANTEEN</h2>
+      <small style="color: #d1fae5;">Cloud System</small>
     </div>
-
-    <!-- Tabs Navigation -->
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('dailyMealTab')">Rozana Meal Hazri</button>
-        <button class="tab-btn" onclick="switchTab('membersTab')">Members & Payments</button>
-        <button class="tab-btn" onclick="switchTab('reportsTab')">Date-wise Report</button>
-        <button class="tab-btn" onclick="switchTab('settingsTab')">Rates (Settings)</button>
+    <div class="auth-box">
+      <span id="userEmail">Not Logged In</span>
+      <button id="authBtn" class="btn btn-accent" onclick="handleAuth()">Login with Google</button>
     </div>
+  </header>
 
-    <!-- 1. Daily Meal Attendance Tab -->
-    <div id="dailyMealTab" class="tab-content active card">
-        <h3>📅 Aaj Ka Khana Log Karein</h3>
-        <div class="form-group" style="margin-top: 15px;">
-            <div>
-                <label>Date:</label>
-                <input type="date" id="attendanceDate" onchange="renderMealAttendance()">
-            </div>
-            <div>
-                <label>Search:</label>
-                <input type="text" id="mealSearch" placeholder="Naam se search..." oninput="renderMealAttendance()">
-            </div>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Naam</th>
-                    <th>Nashta (Rs <span class="rate-breakfast"></span>)</th>
-                    <th>Lunch (Rs <span class="rate-lunch"></span>)</th>
-                    <th>Dinner (Rs <span class="rate-dinner"></span>)</th>
-                    <th>Aaj Ka Kharcha</th>
-                    <th>Baqaya Balance</th>
-                </tr>
-            </thead>
-            <tbody id="mealAttendanceBody"></tbody>
-        </table>
+  <div class="dashboard-grid">
+    <div class="stat-card">
+      <h3>👥 Total Members</h3>
+      <p id="statTotalMembers">0</p>
     </div>
-
-    <!-- 2. Members Tab -->
-    <div id="membersTab" class="tab-content card">
-        <h3>➕ Naya Member Shamil Karein</h3>
-        <form id="addMemberForm" onsubmit="addMember(event)" class="form-group" style="margin-top: 10px;">
-            <input type="text" id="mName" placeholder="Pura Naam" required>
-            <input type="text" id="mPhone" placeholder="Mobile Number">
-            <input type="number" id="mAdvance" placeholder="Advance Jama Raqam" value="0">
-            <button type="submit" class="btn">Member Add Karein</button>
-        </form>
-
-        <h3 style="margin-top: 30px;">💵 Raqam Jama Karein (Payment Deposit)</h3>
-        <form id="depositForm" onsubmit="addPayment(event)" class="form-group" style="margin-top: 10px;">
-            <select id="depositMemberSelect" required></select>
-            <input type="number" id="depositAmount" placeholder="Kitne Paise Jama Kiye?" required>
-            <input type="text" id="depositNotes" placeholder="Tafseel / Note (Optional)">
-            <button type="submit" class="btn btn-accent">Deposit Save Karein</button>
-        </form>
-
-        <h3 style="margin-top: 30px;">👥 Sabhi Members Ki List</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Naam</th>
-                    <th>Mobile</th>
-                    <th>Total Jama</th>
-                    <th>Total Kharcha</th>
-                    <th>Baqaya Balance</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="membersTableBody"></tbody>
-        </table>
+    <div class="stat-card">
+      <h3>🍽 Aaj Ke Total Meals</h3>
+      <p id="statTodayMeals">0</p>
     </div>
-
-    <!-- 3. Reports Tab -->
-    <div id="reportsTab" class="tab-content card">
-        <h3>📊 Tareekh Ke Hisab Se Report</h3>
-        <div class="form-group" style="margin-top: 10px;">
-            <input type="date" id="reportDate" onchange="generateReport()">
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Naam</th>
-                    <th>Nashta</th>
-                    <th>Lunch</th>
-                    <th>Dinner</th>
-                    <th>Total Bill</th>
-                </tr>
-            </thead>
-            <tbody id="reportBody"></tbody>
-        </table>
+    <div class="stat-card">
+      <h3>💰 Aaj Ka Total Kharcha</h3>
+      <p id="statTodayCost">Rs 0</p>
     </div>
-
-    <!-- 4. Settings Tab -->
-    <div id="settingsTab" class="tab-content card">
-        <h3>⚙️ Khane Ki Qeemat (Rates) Set Karein</h3>
-        <form id="pricesForm" onsubmit="savePrices(event)" class="form-group" style="margin-top: 15px;">
-            <div>
-                <label>Nashta (Breakfast):</label>
-                <input type="number" id="priceBreakfast" required>
-            </div>
-            <div>
-                <label>Dopehar (Lunch):</label>
-                <input type="number" id="priceLunch" required>
-            </div>
-            <div>
-                <label>Raat (Dinner):</label>
-                <input type="number" id="priceDinner" required>
-            </div>
-            <div style="display:flex; align-items:flex-end;">
-                <button type="submit" class="btn">Rates Update Karein</button>
-            </div>
-        </form>
+    <div class="stat-card">
+      <h3>💵 Total Baqaya Balance</h3>
+      <p id="statTotalBalance">Rs 0</p>
     </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('attendance')">Rozana Meal Hazri</button>
+    <button class="tab-btn" onclick="showTab('members')">Members & Payment</button>
+    <button class="tab-btn" onclick="showTab('prices')">Meal Rate Set</button>
+    <button class="tab-btn" onclick="showTab('reports')">Hisab Kitab Report</button>
+  </div>
+
+  <!-- Tab 1: Meal Hazri -->
+  <div id="attendance" class="panel active">
+    <h3>Rozana Meal Hazri Lagayein</h3>
+    <div class="form-group" style="margin-top: 15px;">
+      <label>Date:</label>
+      <input type="date" id="mealDate">
+    </div>
+    <div class="form-group">
+      <label>Member Select Karein:</label>
+      <select id="mealMember"></select>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="chkBreakfast"> Nashta (Breakfast)</label><br>
+      <label><input type="checkbox" id="chkLunch"> Dopahar Ka Khana (Lunch)</label><br>
+      <label><input type="checkbox" id="chkDinner"> Raat Ka Khana (Dinner)</label>
+    </div>
+    <button class="btn btn-primary" onclick="addDailyMeal()">Hazri Save Karein</button>
+  </div>
+
+  <!-- Tab 2: Members & Payments -->
+  <div id="members" class="panel">
+    <h3>Naya Member Add Karein</h3>
+    <div class="form-group" style="margin-top: 10px;">
+      <input type="text" id="memberName" placeholder="Member Ka Naam">
+    </div>
+    <button class="btn btn-primary" onclick="addMember()">Member Shamil Karein</button>
+
+    <hr style="margin: 20px 0;">
+    <h3>Payment Jama Karein</h3>
+    <div class="form-group" style="margin-top: 10px;">
+      <select id="payMember"></select>
+    </div>
+    <div class="form-group">
+      <input type="number" id="payAmount" placeholder="Amount (Rs)">
+    </div>
+    <button class="btn btn-accent" onclick="addPayment()">Payment Save Karein</button>
+
+    <div id="membersList" style="margin-top: 20px;"></div>
+  </div>
+
+  <!-- Tab 3: Meal Rates -->
+  <div id="prices" class="panel">
+    <h3>Meal Rates (Rs)</h3>
+    <div class="form-group" style="margin-top: 10px;">
+      <label>Breakfast Rate:</label>
+      <input type="number" id="rateBreakfast">
+    </div>
+    <div class="form-group">
+      <label>Lunch Rate:</label>
+      <input type="number" id="rateLunch">
+    </div>
+    <div class="form-group">
+      <label>Dinner Rate:</label>
+      <input type="number" id="rateDinner">
+    </div>
+    <button class="btn btn-primary" onclick="saveRates()">Rates Update Karein</button>
+  </div>
+
+  <!-- Tab 4: Reports -->
+  <div id="reports" class="panel">
+    <h3>Members Ka Hisab Kitab</h3>
+    <div id="reportTableContainer"></div>
+  </div>
 </div>
 
 <script>
-    // AZHAR CANTEEN Firebase Configuration
-    const firebaseConfig = {
-            apiKey: "AIzaSyB3D8PUo3T2Gn-ArseSoYbTz0_DI91mVT4",
-        
-        authDomain: "azhar-canteen-1d7bf.firebaseapp.com",
-        projectId: "azhar-canteen-1d7bf",
-        storageBucket: "azhar-canteen-1d7bf.firebasestorage.app",
-        messagingSenderId: "79260493956",
-        appId: "1:79260493956:web:b940fdc68a37cdbe6ebad1"
-    };
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyB328PoJ2TfQn-Arae9oYbTz0_Dl9ImVT4",
+    authDomain: "azhar-canteen-1d7bf.firebaseapp.com",
+    projectId: "azhar-canteen-1d7bf",
+    storageBucket: "azhar-canteen-1d7bf.firebasestorage.app",
+    messagingSenderId: "73260403056",
+    appId: "1:73260403056:web:b840fdc68a37cdba6ebad1"
+  };
 
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // Local state
+  let currentUser = null;
+  let state = {
+    members: [],
+    dailyMeals: [],
+    payments: [],
+    rates: { breakfast: 70, lunch: 150, dinner: 150 }
+  };
+
+  // Auth State Listener
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('userEmail').innerText = user.email;
+      document.getElementById('authBtn').innerText = 'Logout';
+      document.getElementById('authBtn').className = 'btn btn-danger';
+      listenToCloudData();
+    } else {
+      currentUser = null;
+      document.getElementById('userEmail').innerText = 'Not Logged In';
+      document.getElementById('authBtn').innerText = 'Login with Google';
+      document.getElementById('authBtn').className = 'btn btn-accent';
+      loadLocalFallback();
     }
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    db.enablePersistence().catch(err => {
-        console.log("Persistence code:", err.code);
-    });
-
-    let currentUser = null;
-    let state = {
-        members: [],
-        dailyMeals: {},
-        payments: [],
-        rates: { breakfast: 70, lunch: 150, dinner: 150 }
-    };
-
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-  .then(() => {
-    return auth.getRedirectResult();
-  })
-  .then((result) => {
-    if (result && result.user) {
-      console.log("Redirect success:", result.user.email);
-    }
-  })
-  .catch((err) => {
-    console.error("Auth redirect error:", err);
-    alert("Login Error: " + err.message);
   });
 
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
-    const userEmailEl = document.getElementById('userEmail');
-    const authBtnEl = document.getElementById('authBtn');
-    if (userEmailEl) userEmailEl.innerText = user.email;
-    if (authBtnEl) {
-      authBtnEl.innerText = 'Logout';
-      authBtnEl.className = 'btn btn-danger';
-    }
-    listenToCloudData();
-  } else {
-    currentUser = null;
-    const userEmailEl = document.getElementById('userEmail');
-    const authBtnEl = document.getElementById('authBtn');
-    if (userEmailEl) userEmailEl.innerText = 'Not Logged In';
-    if (authBtnEl) {
-      authBtnEl.innerText = 'Login with Google';
-      authBtnEl.className = 'btn btn-accent';
-    }
-    loadLocalFallback();
-  }
-});
-
-function handleAuth() {
-  if (currentUser) {
-    auth.signOut();
-  } else {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    auth.signInWithRedirect(provider);
-  }
-}
-
-
-    function listenToCloudData() {
-        if (!currentUser) return;
-        const docRef = db.collection('canteen_data').doc(currentUser.uid);
-
-        docRef.onSnapshot(doc => {
-            if (doc.exists) {
-                state = doc.data();
-                localStorage.setItem('canteen_cached_state', JSON.stringify(state));
-                refreshUI();
-            } else {
-                saveData();
-            }
+  // Authentication Login / Logout (Using Popup Mode)
+  function handleAuth() {
+    if (currentUser) {
+      auth.signOut();
+    } else {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      auth.signInWithPopup(provider)
+        .then((result) => {
+          if (result && result.user) {
+            currentUser = result.user;
+            document.getElementById('userEmail').innerText = result.user.email;
+            document.getElementById('authBtn').innerText = 'Logout';
+            document.getElementById('authBtn').className = 'btn btn-danger';
+            listenToCloudData();
+          }
+        })
+        .catch((err) => {
+          console.error("Auth Error:", err);
+          alert("Login Error: " + err.message);
         });
     }
+  }
 
-    function loadLocalFallback() {
-        const cached = localStorage.getItem('canteen_cached_state');
-        if (cached) {
-            state = JSON.parse(cached);
-        }
-        refreshUI();
-    }
-
-    function saveData() {
+  // Real-time Cloud Sync
+  function listenToCloudData() {
+    if (!currentUser) return;
+    const docRef = db.collection('canteen_data').doc(currentUser.uid);
+    docRef.onSnapshot((doc) => {
+      if (doc.exists) {
+        state = doc.data();
         localStorage.setItem('canteen_cached_state', JSON.stringify(state));
-        if (currentUser) {
-            db.collection('canteen_data').doc(currentUser.uid).set(state)
-                .catch(err => console.log("Cloud sync queued:", err));
-        }
         refreshUI();
-    }
-
-    function refreshUI() {
-        loadPrices();
-        renderMemberOptions();
-        renderMealAttendance();
-        renderMembersList();
-        generateReport();
-        updateDashboard();
-    }
-
-    function getTodayString() {
-        return new Date().toISOString().split('T')[0];
-    }
-
-    function init() {
-        document.getElementById('attendanceDate').value = getTodayString();
-        document.getElementById('reportDate').value = getTodayString();
-        loadLocalFallback();
-    }
-
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
-
-    function loadPrices() {
-        document.getElementById('priceBreakfast').value = state.rates.breakfast;
-        document.getElementById('priceLunch').value = state.rates.lunch;
-        document.getElementById('priceDinner').value = state.rates.dinner;
-        document.querySelectorAll('.rate-breakfast').forEach(el => el.innerText = state.rates.breakfast);
-        document.querySelectorAll('.rate-lunch').forEach(el => el.innerText = state.rates.lunch);
-        document.querySelectorAll('.rate-dinner').forEach(el => el.innerText = state.rates.dinner);
-    }
-
-    function savePrices(e) {
-        e.preventDefault();
-        state.rates = {
-            breakfast: parseFloat(document.getElementById('priceBreakfast').value),
-            lunch: parseFloat(document.getElementById('priceLunch').value),
-            dinner: parseFloat(document.getElementById('priceDinner').value)
-        };
+      } else {
         saveData();
-        alert('Rates Cloud par update ho gaye!');
+      }
+    });
+  }
+
+  function loadLocalFallback() {
+    const cached = localStorage.getItem('canteen_cached_state');
+    if (cached) {
+      state = JSON.parse(cached);
     }
+    refreshUI();
+  }
 
-    function addMember(e) {
-        e.preventDefault();
-        const id = 'mem_' + Date.now();
-        const member = {
-            id: id,
-            name: document.getElementById('mName').value,
-            phone: document.getElementById('mPhone').value,
-            initialAdvance: parseFloat(document.getElementById('mAdvance').value) || 0
-        };
-        state.members.push(member);
-        saveData();
-        document.getElementById('addMemberForm').reset();
+  function saveData() {
+    localStorage.setItem('canteen_cached_state', JSON.stringify(state));
+    if (currentUser) {
+      db.collection('canteen_data').doc(currentUser.uid).set(state)
+        .catch(err => console.log("Cloud sync queued:", err));
     }
+    refreshUI();
+  }
 
-    function addPayment(e) {
-        e.preventDefault();
-        const payment = {
-            id: 'pay_' + Date.now(),
-            memberId: document.getElementById('depositMemberSelect').value,
-            amount: parseFloat(document.getElementById('depositAmount').value),
-            date: getTodayString(),
-            notes: document.getElementById('depositNotes').value
-        };
-        state.payments.push(payment);
-        saveData();
-        document.getElementById('depositForm').reset();
-        alert('Payment Cloud par save ho gayi!');
+  function refreshUI() {
+    loadPrices();
+    renderMemberOptions();
+    renderMembersList();
+    generateReport();
+  }
+
+  function showTab(tabId) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function addMember() {
+    const name = document.getElementById('memberName').value.trim();
+    if (!name) return alert('Naam likhein');
+    state.members.push({ id: Date.now().toString(), name: name });
+    document.getElementById('memberName').value = '';
+    saveData();
+  }
+
+  function renderMemberOptions() {
+    const mealSelect = document.getElementById('mealMember');
+    const paySelect = document.getElementById('payMember');
+    mealSelect.innerHTML = '';
+    paySelect.innerHTML = '';
+    state.members.forEach(m => {
+      const opt = `<option value="${m.id}">${m.name}</option>`;
+      mealSelect.innerHTML += opt;
+      paySelect.innerHTML += opt;
+    });
+    document.getElementById('statTotalMembers').innerText = state.members.length;
+  }
+
+  function addDailyMeal() {
+    const date = document.getElementById('mealDate').value;
+    const memberId = document.getElementById('mealMember').value;
+    const b = document.getElementById('chkBreakfast').checked;
+    const l = document.getElementById('chkLunch').checked;
+    const d = document.getElementById('chkDinner').checked;
+
+    if (!date || !memberId) return alert('Date aur Member select karein');
+    state.dailyMeals.push({ date, memberId, b, l, d });
+    alert('Hazri darj ho gayi!');
+    saveData();
+  }
+
+  function addPayment() {
+    const memberId = document.getElementById('payMember').value;
+    const amount = parseFloat(document.getElementById('payAmount').value);
+    if (!memberId || isNaN(amount)) return alert('Sahi details likhein');
+    state.payments.push({ id: Date.now().toString(), memberId, amount, date: new Date().toISOString().slice(0,10) });
+    document.getElementById('payAmount').value = '';
+    alert('Payment save ho gayi!');
+    saveData();
+  }
+
+  function loadPrices() {
+    document.getElementById('rateBreakfast').value = state.rates.breakfast || 70;
+    document.getElementById('rateLunch').value = state.rates.lunch || 150;
+    document.getElementById('rateDinner').value = state.rates.dinner || 150;
+  }
+
+  function saveRates() {
+    state.rates.breakfast = parseFloat(document.getElementById('rateBreakfast').value) || 0;
+    state.rates.lunch = parseFloat(document.getElementById('rateLunch').value) || 0;
+    state.rates.dinner = parseFloat(document.getElementById('rateDinner').value) || 0;
+    saveData();
+    alert('Rates update ho gaye!');
+  }
+
+  function renderMembersList() {
+    const div = document.getElementById('membersList');
+    div.innerHTML = '<h4>Mojooda Members:</h4><ul>' + state.members.map(m => `<li>${m.name}</li>`).join('') + '</ul>';
+  }
+
+  function generateReport() {
+    let today = new Date().toISOString().slice(0, 10);
+    let todayMealsCount = 0;
+    let todayCost = 0;
+
+    let memberStats = {};
+    state.members.forEach(m => {
+      memberStats[m.id] = { name: m.name, totalCost: 0, paid: 0 };
+    });
+
+    state.dailyMeals.forEach(meal => {
+      let cost = 0;
+      let count = 0;
+      if (meal.b) { cost += state.rates.breakfast; count++; }
+      if (meal.l) { cost += state.rates.lunch; count++; }
+      if (meal.d) { cost += state.rates.dinner; count++; }
+
+      if (meal.date === today) {
+        todayMealsCount += count;
+        todayCost += cost;
+      }
+
+      if (memberStats[meal.memberId]) {
+        memberStats[meal.memberId].totalCost += cost;
+      }
+    });
+
+    state.payments.forEach(p => {
+      if (memberStats[p.memberId]) {
+        memberStats[p.memberId].paid += p.amount;
+      }
+    });
+
+    let totalPendingBalance = 0;
+    let tableHtml = `<table><tr><th>Naam</th><th>Kharcha</th><th>Jama Kiya</th><th>Baqaya</th></tr>`;
+    for (let id in memberStats) {
+      let m = memberStats[id];
+      let bal = m.totalCost - m.paid;
+      totalPendingBalance += bal;
+      tableHtml += `<tr>
+        <td>${m.name}</td>
+        <td>Rs ${m.totalCost}</td>
+        <td>Rs ${m.paid}</td>
+        <td style="color: ${bal > 0 ? 'red' : 'green'}; font-weight:bold;">Rs ${bal}</td>
+      </tr>`;
     }
+    tableHtml += `</table>`;
 
-    function calculateMemberBalance(memberId) {
-        const member = state.members.find(m => m.id === memberId);
-        if (!member) return { totalPaid: 0, totalExpense: 0, balance: 0 };
+    document.getElementById('reportTableContainer').innerHTML = tableHtml;
+    document.getElementById('statTodayMeals').innerText = todayMealsCount;
+    document.getElementById('statTodayCost').innerText = 'Rs ' + todayCost;
+    document.getElementById('statTotalBalance').innerText = 'Rs ' + totalPendingBalance;
+  }
 
-        let totalPaid = member.initialAdvance;
-        state.payments.filter(p => p.memberId === memberId).forEach(p => totalPaid += p.amount);
-
-        let totalExpense = 0;
-        for (const date in state.dailyMeals) {
-            const userMeal = state.dailyMeals[date][memberId];
-            if (userMeal) {
-                if (userMeal.breakfast) totalExpense += state.rates.breakfast;
-                if (userMeal.lunch) totalExpense += state.rates.lunch;
-                if (userMeal.dinner) totalExpense += state.rates.dinner;
-            }
-        }
-
-        return {
-            totalPaid,
-            totalExpense,
-            balance: totalPaid - totalExpense
-        };
-    }
-
-    function renderMealAttendance() {
-        const date = document.getElementById('attendanceDate').value;
-        const search = document.getElementById('mealSearch').value.toLowerCase();
-        const tbody = document.getElementById('mealAttendanceBody');
-        tbody.innerHTML = '';
-
-        if (!state.dailyMeals[date]) {
-            state.dailyMeals[date] = {};
-        }
-
-        state.members
-            .filter(m => m.name.toLowerCase().includes(search))
-            .forEach(member => {
-                const mealRecord = state.dailyMeals[date][member.id] || { breakfast: false, lunch: false, dinner: false };
-                const dayCost = (mealRecord.breakfast ? state.rates.breakfast : 0) +
-                               (mealRecord.lunch ? state.rates.lunch : 0) +
-                               (mealRecord.dinner ? state.rates.dinner : 0);
-                
-                const stats = calculateMemberBalance(member.id);
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${member.name}</strong></td>
-                    <td>
-                        <input type="checkbox" ${mealRecord.breakfast ? 'checked' : ''} 
-                            onchange="toggleMeal('${date}', '${member.id}', 'breakfast', this.checked)">
-                        <small style="color:#6b7280;margin-left:5px;">${mealRecord.breakfastTime || ''}</small>
-                    </td>
-                    <td>
-                        <input type="checkbox" ${mealRecord.lunch ? 'checked' : ''} 
-                            onchange="toggleMeal('${date}', '${member.id}', 'lunch', this.checked)">
-                        <small style="color:#6b7280;margin-left:5px;">${mealRecord.lunchTime || ''}</small>
-                    </td>
-                    <td>
-                        <input type="checkbox" ${mealRecord.dinner ? 'checked' : ''} 
-                            onchange="toggleMeal('${date}', '${member.id}', 'dinner', this.checked)">
-                        <small style="color:#6b7280;margin-left:5px;">${mealRecord.dinnerTime || ''}</small>
-                    </td>
-                    <td>Rs ${dayCost}</td>
-                    <td class="${stats.balance < 0 ? 'balance-low' : 'balance-ok'}">Rs ${stats.balance}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-    }
-
-    function toggleMeal(date, memberId, type, isChecked) {
-        if (!state.dailyMeals[date]) state.dailyMeals[date] = {};
-        if (!state.dailyMeals[date][memberId]) {
-            state.dailyMeals[date][memberId] = { breakfast: false, lunch: false, dinner: false };
-        }
-
-        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        state.dailyMeals[date][memberId][type] = isChecked;
-        state.dailyMeals[date][memberId][type + 'Time'] = isChecked ? now : '';
-
-        saveData();
-    }
-
-    function renderMembersList() {
-        const tbody = document.getElementById('membersTableBody');
-        tbody.innerHTML = '';
-
-        state.members.forEach(m => {
-            const stats = calculateMemberBalance(m.id);
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${m.name}</strong></td>
-                <td>${m.phone || '-'}</td>
-                <td>Rs ${stats.totalPaid}</td>
-                <td>Rs ${stats.totalExpense}</td>
-                <td class="${stats.balance < 0 ? 'balance-low' : 'balance-ok'}">Rs ${stats.balance}</td>
-                <td><button style="background:var(--danger);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;" onclick="deleteMember('${m.id}')">Delete</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function deleteMember(id) {
-        if (confirm('Kya aap waqai is member ko delete karna chahte hain?')) {
-            state.members = state.members.filter(m => m.id !== id);
-            saveData();
-        }
-    }
-
-    function renderMemberOptions() {
-        const select = document.getElementById('depositMemberSelect');
-        select.innerHTML = '<option value="">Member select karein...</option>';
-        state.members.forEach(m => {
-            select.innerHTML += `<option value="${m.id}">${m.name}</option>`;
-        });
-    }
-
-    function generateReport() {
-        const date = document.getElementById('reportDate').value;
-        const tbody = document.getElementById('reportBody');
-        tbody.innerHTML = '';
-
-        const mealsOnDate = state.dailyMeals[date] || {};
-
-        state.members.forEach(m => {
-            const meal = mealsOnDate[m.id];
-            if (meal && (meal.breakfast || meal.lunch || meal.dinner)) {
-                let cost = (meal.breakfast ? state.rates.breakfast : 0) +
-                           (meal.lunch ? state.rates.lunch : 0) +
-                           (meal.dinner ? state.rates.dinner : 0);
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${m.name}</strong></td>
-                    <td>${meal.breakfast ? '✅ ' + (meal.breakfastTime || '') : '❌'}</td>
-                    <td>${meal.lunch ? '✅ ' + (meal.lunchTime || '') : '❌'}</td>
-                    <td>${meal.dinner ? '✅ ' + (meal.dinnerTime || '') : '❌'}</td>
-                    <td>Rs ${cost}</td>
-                `;
-                tbody.appendChild(tr);
-            }
-        });
-    }
-
-    function updateDashboard() {
-        document.getElementById('dashTotalMembers').innerText = state.members.length;
-        
-        const today = getTodayString();
-        const todayMeals = state.dailyMeals[today] || {};
-        let mealCount = 0;
-        let todayExpense = 0;
-
-        for (const mid in todayMeals) {
-            const m = todayMeals[mid];
-            if (m.breakfast) { mealCount++; todayExpense += state.rates.breakfast; }
-            if (m.lunch) { mealCount++; todayExpense += state.rates.lunch; }
-            if (m.dinner) { mealCount++; todayExpense += state.rates.dinner; }
-        }
-
-        document.getElementById('dashTodayMeals').innerText = mealCount;
-        document.getElementById('dashTodayExpense').innerText = `Rs ${todayExpense}`;
-
-        let totalBalance = 0;
-        state.members.forEach(m => {
-            totalBalance += calculateMemberBalance(m.id).balance;
-        });
-        document.getElementById('dashTotalBalance').innerText = `Rs ${totalBalance}`;
-    }
-
-    window.onload = init;
+  // Default Today Date
+  document.getElementById('mealDate').value = new Date().toISOString().slice(0, 10);
+  refreshUI();
 </script>
 </body>
 </html>
