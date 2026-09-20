@@ -9,9 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  
-  <!-- Official Google Identity Services (Zero-Failure Mobile Auth) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
     :root {
@@ -124,8 +121,7 @@
     </div>
     <div class="auth-box">
       <span id="userEmail">Not Logged In</span>
-      <div id="googleBtnContainer"></div>
-      <button id="logoutBtn" class="btn btn-danger" style="display:none;" onclick="handleSignOut()">Logout</button>
+      <button id="authBtn" class="btn btn-accent" onclick="handleAuth()">Login with Google</button>
     </div>
   </header>
 
@@ -221,14 +217,14 @@
 </div>
 
 <script>
-  // Firebase Configuration
+  // Correct Sahi Firebase Configuration
   const firebaseConfig = {
-    apiKey: "AIzaSyB328PoJ2TfQn-Arae9oYbTz0_Dl9ImVT4",
-    authDomain: "azhar-canteen-1d7bf.firebaseapp.com",
-    projectId: "azhar-canteen-1d7bf",
-    storageBucket: "azhar-canteen-1d7bf.firebasestorage.app",
-    messagingSenderId: "73260403056",
-    appId: "1:73260403056:web:b840fdc68a37cdba6ebad1"
+    apiKey: "AIzaSyDM8NpPwj64Epa2xxwMwOhu5P2vIE6YCPw",
+    authDomain: "azhar-canteen.firebaseapp.com",
+    projectId: "azhar-canteen",
+    storageBucket: "azhar-canteen.firebasestorage.app",
+    messagingSenderId: "709202089035",
+    appId: "1:709202089035:web:4c71ea32792e337e4569ce"
   };
 
   if (!firebase.apps.length) {
@@ -238,7 +234,6 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  // Local state
   let currentUser = null;
   let state = {
     members: [],
@@ -247,55 +242,51 @@
     rates: { breakfast: 70, lunch: 150, dinner: 150 }
   };
 
-  // Google Identity Services Credential Handler
-  function handleCredentialResponse(response) {
-    const idToken = response.credential;
-    const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
-    auth.signInWithCredential(credential)
-      .catch((err) => {
-        console.error("GIS Sign-In Error:", err);
-        alert("Sign-In Error: " + err.message);
-      });
-  }
-
-  function initGoogleBtn() {
-    if (window.google && window.google.accounts) {
-      google.accounts.id.initialize({
-        client_id: "73260403056-uiclj7j938v9bfe5rskek157fcll8uov.apps.googleusercontent.com", // Project OAuth Client
-        callback: handleCredentialResponse
-      });
-      google.accounts.id.renderButton(
-        document.getElementById("googleBtnContainer"),
-        { theme: "outline", size: "medium", text: "signin_with" }
-      );
-    } else {
-      setTimeout(initGoogleBtn, 300);
-    }
-  }
-
   // Auth State Listener
   auth.onAuthStateChanged((user) => {
     if (user) {
       currentUser = user;
       document.getElementById('userEmail').innerText = user.email;
-      document.getElementById('googleBtnContainer').style.display = 'none';
-      document.getElementById('logoutBtn').style.display = 'inline-block';
+      const btn = document.getElementById('authBtn');
+      btn.innerText = 'Logout';
+      btn.className = 'btn btn-danger';
+      btn.disabled = false;
       listenToCloudData();
     } else {
       currentUser = null;
       document.getElementById('userEmail').innerText = 'Not Logged In';
-      document.getElementById('googleBtnContainer').style.display = 'inline-block';
-      document.getElementById('logoutBtn').style.display = 'none';
-      initGoogleBtn();
+      const btn = document.getElementById('authBtn');
+      btn.innerText = 'Login with Google';
+      btn.className = 'btn btn-accent';
+      btn.disabled = false;
       loadLocalFallback();
     }
   });
 
-  function handleSignOut() {
-    auth.signOut();
+  function handleAuth() {
+    const btn = document.getElementById('authBtn');
+    if (currentUser) {
+      auth.signOut();
+    } else {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.innerText = 'Connecting...';
+
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      auth.signInWithPopup(provider)
+        .catch((err) => {
+          btn.disabled = false;
+          btn.innerText = 'Login with Google';
+          btn.className = 'btn btn-accent';
+          if (err.code !== 'auth/cancelled-popup-request') {
+            alert("Login: " + err.message);
+          }
+        });
+    }
   }
 
-  // Real-time Cloud Sync
   function listenToCloudData() {
     if (!currentUser) return;
     const docRef = db.collection('canteen_data').doc(currentUser.uid);
@@ -458,10 +449,8 @@
     document.getElementById('statTotalBalance').innerText = 'Rs ' + totalPendingBalance;
   }
 
-  // Default Today Date
   document.getElementById('mealDate').value = new Date().toISOString().slice(0, 10);
   refreshUI();
-  window.addEventListener('load', initGoogleBtn);
 </script>
 </body>
 </html>
