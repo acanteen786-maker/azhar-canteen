@@ -9,6 +9,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Official Google Identity Services (Zero-Failure Mobile Auth) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
     :root {
@@ -117,11 +120,12 @@
   <header>
     <div>
       <h2>🍽 AZHAR CANTEEN</h2>
-      <small style="color: #d1fae5;">Cloud System</small>
+      <small style="color: #d1fae5;">Google Cloud Connected</small>
     </div>
     <div class="auth-box">
       <span id="userEmail">Not Logged In</span>
-      <button id="authBtn" class="btn btn-accent" onclick="handleAuth()">Login with Google</button>
+      <div id="googleBtnContainer"></div>
+      <button id="logoutBtn" class="btn btn-danger" style="display:none;" onclick="handleSignOut()">Logout</button>
     </div>
   </header>
 
@@ -243,45 +247,52 @@
     rates: { breakfast: 70, lunch: 150, dinner: 150 }
   };
 
+  // Google Identity Services Credential Handler
+  function handleCredentialResponse(response) {
+    const idToken = response.credential;
+    const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+    auth.signInWithCredential(credential)
+      .catch((err) => {
+        console.error("GIS Sign-In Error:", err);
+        alert("Sign-In Error: " + err.message);
+      });
+  }
+
+  function initGoogleBtn() {
+    if (window.google && window.google.accounts) {
+      google.accounts.id.initialize({
+        client_id: "73260403056-uiclj7j938v9bfe5rskek157fcll8uov.apps.googleusercontent.com", // Project OAuth Client
+        callback: handleCredentialResponse
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("googleBtnContainer"),
+        { theme: "outline", size: "medium", text: "signin_with" }
+      );
+    } else {
+      setTimeout(initGoogleBtn, 300);
+    }
+  }
+
   // Auth State Listener
   auth.onAuthStateChanged((user) => {
     if (user) {
       currentUser = user;
       document.getElementById('userEmail').innerText = user.email;
-      document.getElementById('authBtn').innerText = 'Logout';
-      document.getElementById('authBtn').className = 'btn btn-danger';
+      document.getElementById('googleBtnContainer').style.display = 'none';
+      document.getElementById('logoutBtn').style.display = 'inline-block';
       listenToCloudData();
     } else {
       currentUser = null;
       document.getElementById('userEmail').innerText = 'Not Logged In';
-      document.getElementById('authBtn').innerText = 'Login with Google';
-      document.getElementById('authBtn').className = 'btn btn-accent';
+      document.getElementById('googleBtnContainer').style.display = 'inline-block';
+      document.getElementById('logoutBtn').style.display = 'none';
+      initGoogleBtn();
       loadLocalFallback();
     }
   });
 
-  // Authentication Login / Logout (Using Popup Mode)
-  function handleAuth() {
-    if (currentUser) {
-      auth.signOut();
-    } else {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      auth.signInWithPopup(provider)
-        .then((result) => {
-          if (result && result.user) {
-            currentUser = result.user;
-            document.getElementById('userEmail').innerText = result.user.email;
-            document.getElementById('authBtn').innerText = 'Logout';
-            document.getElementById('authBtn').className = 'btn btn-danger';
-            listenToCloudData();
-          }
-        })
-        .catch((err) => {
-          console.error("Auth Error:", err);
-          alert("Login Error: " + err.message);
-        });
-    }
+  function handleSignOut() {
+    auth.signOut();
   }
 
   // Real-time Cloud Sync
@@ -450,6 +461,7 @@
   // Default Today Date
   document.getElementById('mealDate').value = new Date().toISOString().slice(0, 10);
   refreshUI();
+  window.addEventListener('load', initGoogleBtn);
 </script>
 </body>
 </html>
