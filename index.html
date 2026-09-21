@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AZHAR CANTEEN SYSTEM</title>
 
+  <!-- Google Identity Service (GIS) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
   <!-- Firebase Libraries (Compat v9) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -120,8 +123,9 @@
       <small style="color: #d1fae5;">Google Cloud Connected</small>
     </div>
     <div class="auth-box">
-      <span id="userEmail">Loading...</span>
-      <button id="authBtn" class="btn btn-accent" onclick="handleAuth()">Login with Google</button>
+      <span id="userEmail">Checking...</span>
+      <div id="googleBtnContainer"></div>
+      <button id="logoutBtn" class="btn btn-danger" style="display:none;" onclick="handleLogout()">Logout</button>
     </div>
   </header>
 
@@ -241,46 +245,53 @@
     rates: { breakfast: 70, lunch: 150, dinner: 150 }
   };
 
-  // Mobile Redirect Handler
-  auth.getRedirectResult().then((result) => {
-    if (result && result.user) {
-      console.log("Login successful:", result.user.email);
+  // Google Identity Credential Handler
+  window.handleGoogleCredentialResponse = function(response) {
+    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
+    auth.signInWithCredential(credential).catch((error) => {
+      alert("Sign-in failed: " + error.message);
+    });
+  };
+
+  function initGoogleButton() {
+    if (window.google && window.google.accounts) {
+      google.accounts.id.initialize({
+        client_id: "709202089035-71vj9a72d3s048e9j6k55gghc3i3i3im.apps.googleusercontent.com",
+        callback: handleGoogleCredentialResponse
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("googleBtnContainer"),
+        { theme: "outline", size: "medium" }
+      );
+    } else {
+      setTimeout(initGoogleButton, 500);
     }
-  }).catch((error) => {
-    alert("Login Error: " + error.message);
-  });
+  }
 
   // Auth State Listener
   auth.onAuthStateChanged((user) => {
-    const btn = document.getElementById('authBtn');
+    const emailSpan = document.getElementById('userEmail');
+    const googleBtn = document.getElementById('googleBtnContainer');
+    const logoutBtn = document.getElementById('logoutBtn');
+
     if (user) {
       currentUser = user;
-      document.getElementById('userEmail').innerText = user.email;
-      btn.innerText = 'Logout';
-      btn.className = 'btn btn-danger';
-      btn.disabled = false;
+      emailSpan.innerText = user.email;
+      googleBtn.style.display = 'none';
+      logoutBtn.style.display = 'inline-block';
       listenToCloudData();
     } else {
       currentUser = null;
-      document.getElementById('userEmail').innerText = 'Not Logged In';
-      btn.innerText = 'Login with Google';
-      btn.className = 'btn btn-accent';
-      btn.disabled = false;
+      emailSpan.innerText = 'Not Logged In';
+      googleBtn.style.display = 'inline-block';
+      logoutBtn.style.display = 'none';
+      initGoogleButton();
       loadLocalFallback();
     }
   });
 
-  function handleAuth() {
-    const btn = document.getElementById('authBtn');
-    if (currentUser) {
-      auth.signOut();
-    } else {
-      btn.disabled = true;
-      btn.innerText = 'Opening Google...';
-      const provider = new firebase.auth.GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      auth.signInWithRedirect(provider);
-    }
+  function handleLogout() {
+    auth.signOut();
   }
 
   function listenToCloudData() {
@@ -447,6 +458,7 @@
 
   document.getElementById('mealDate').value = new Date().toISOString().slice(0, 10);
   refreshUI();
+  window.addEventListener('load', initGoogleButton);
 </script>
 </body>
 </html>
